@@ -19,6 +19,7 @@
 import numpy as np
 import matplotlib.pyplot as plt
 from datetime import datetime
+from scipy import stats
 
 class Manager:
 
@@ -30,18 +31,44 @@ class Manager:
 		answerList = ( # = (  dateList, openList, highList , lowList, closeList, volumeList, adjCloseList
 			np.genfromtxt(fileName, dtype=None, delimiter=',', skiprows=1, usecols=(0,1,2,3,4,5,6)) # unpack=True
 		)
-		for x in range (2):
-			print answerList[x] #+ " " + openList[x]
+		#for x in range (2):
+		#	print answerList[x] #+ " " + openList[x]
 		
-		dateList = [datetime.strptime(x[0], "%m/%d/%Y") for x in answerList] 
-		openList = [x[1] for x in answerList] 
-		closeList = [x[3] for x in answerList]  
+		print "Splitting raw data..."
+		dateList = np.asarray([datetime.strptime(x[0], "%m/%d/%Y") for x in answerList])
+		openList = np.asarray([x[1] for x in answerList])
+		#closeList = [x[3] for x in answerList]  
 		#openList, highList, lowList, closeList, volumeList, adjCloseList = 
 
+		print "Normalizing data by Z-score..."
+		z_openList = stats.zscore(openList)
+
+		print "Splitting into small periods..."
+		miniStockList = []
+		for i, miniStock in enumerate(self.chunks(z_openList, 100)):
+			miniStockList.append(miniStock)
+
+		print "Clustering..."
+		print "TODO"
+
 		print "Graphing data..."
-		plt.plot(dateList, openList, color='r')
-		plt.plot(dateList, closeList, color='c')
+		for i in range(5):
+			plt.subplot(2,5,i+1)
+			plt.ylabel(str(i))
+			plt.plot(dateList[:len(miniStockList[i])], miniStockList[i], color='r')
+		plt.subplot(256)
+		plt.plot(dateList, openList, color='m')
+		plt.subplot(257)
+		plt.plot(dateList, z_openList, color='c')
 		plt.show()
+
+
+	def chunks(self, l, n):
+	    num = len(l)/n
+	    answer = []
+	    for i in xrange(0, len(l), num):
+	        answer.append(l[i:i+num])
+	    return answer
 
 	def generateClustersTemp(self):
 		raiseNotImplemented()
