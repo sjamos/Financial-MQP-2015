@@ -16,42 +16,110 @@
 
 """
 
+from datetime import datetime
 import numpy as np
 import matplotlib.pyplot as plt
-from datetime import datetime
+from matplotlib import collections as mc
+
 from scipy import stats
+from sklearn.cluster import KMeans
+from sklearn.decomposition import PCA
+import pylab as pl
 
 class Manager:
 
 	def __init__(self):
 		pass
 
-	def loadDataFromFile(self, fileName="genHistory.csv"):
+	def loadDataFromFile(self, fileName):
+		"""	Reads in data from a .csv file.
+			Parameters:
+				fileName (str): name of the file to read in data from.
+			Returns:
+				A list of lists, which each represent a column from the data read.
+		"""
+		# dateList, openList, highList, lowList, closeList, volumeList, adjCloseList 
+		# unpack=True
+		return np.genfromtxt(fileName, dtype=None, delimiter=',', skiprows=1, usecols=(0,1,2,3,4,5,6)) 
+
+	def normalizeByZScore(self, dataList):
+		"""	Normalizes a list by Z-Score.
+			Parameters:
+				dataList (list of float): data to normalize.
+			Returns:
+				The normalized list of data, as an nparray.
+		"""
+		return stats.zscore(dataList)
+
+	def graphClusters(self, clusters, dateList):
+		"""
+			Parameters:
+				clusters (list): list of list(cluster) of list(stock) of doubles
+				dateList (list): list of dates 
+		"""
+		plt.figure("Clusters")
+		for i, cluster in enumerate(clusters):
+			for stock in clusters[i]:
+				assert len(stock) == len(dateList)
+				plt.subplot(2,5,i+1)
+				plt.ylabel("Cluster" + str(i))
+				plt.plot(dateList, stock)
+
+	def run(self, fileName):
 		print "Loading data..."
-		answerList = ( # = (  dateList, openList, highList , lowList, closeList, volumeList, adjCloseList
-			np.genfromtxt(fileName, dtype=None, delimiter=',', skiprows=1, usecols=(0,1,2,3,4,5,6)) # unpack=True
-		)
-		#for x in range (2):
-		#	print answerList[x] #+ " " + openList[x]
+		answerList = self.loadDataFromFile(fileName)
 		
 		print "Splitting raw data..."
-		dateList = np.asarray([datetime.strptime(x[0], "%m/%d/%Y") for x in answerList])
-		openList = np.asarray([x[1] for x in answerList])
+		dateList = [datetime.strptime(x[0], "%m/%d/%Y") for x in answerList]
+		openList = [x[1] for x in answerList]
+		#print openList
 		#closeList = [x[3] for x in answerList]  
 		#openList, highList, lowList, closeList, volumeList, adjCloseList = 
 
 		print "Normalizing data by Z-score..."
 		z_openList = stats.zscore(openList)
+		#print z_openList
 
 		print "Splitting into small periods..."
 		miniStockList = []
-		for i, miniStock in enumerate(self.chunks(z_openList, 100)):
-			miniStockList.append(miniStock)
+
+		for i, miniStock in enumerate(self.chunks(openList, 57)):
+			miniStockList.append(self.normalizeByZScore(miniStock))
+		#data = np.asarray([np.asarray(x) for x in miniStockList])
 
 		print "Clustering..."
-		print "TODO"
+		kmeans = KMeans(n_clusters=10)
+		kmeans.fit(miniStockList)
 
-		print "Graphing data..."
+		clusters = {}
+		for i, label in enumerate(kmeans.labels_):
+			if label in clusters:
+				clusters[label].append(miniStockList[i])
+			else:
+				clusters[label] = list()
+				clusters[label].append(miniStockList[i])	
+		
+		print "# of Clusteres: " + str(len(clusters))
+		print "# of stocks: " + str(len(miniStockList))
+		print "Cluster sizes: "
+		for key in clusters:
+			print str(key) + ": " + str(len(clusters[key]))
+
+		print "Graph invidivual clusters..."
+		self.graphClusters(clusters, dateList[:len(clusters[0][0])])
+
+		print "Graph reference..."
+		pca = PCA(n_components=2).fit(miniStockList)
+		pca_2d = pca.transform(miniStockList)
+		#plt.figure('Reference Plot')
+		#pl.scatter(pca_2d[:, 0], pca_2d[:, 1])
+
+		print "Graph clustering..."
+		plt.figure("Clusters transformed to 2D")
+		plt.scatter(pca_2d[:, 0], pca_2d[:, 1], c=kmeans.labels_)
+
+		"""
+		print "Graph raw data..."
 		for i in range(5):
 			plt.subplot(2,5,i+1)
 			plt.ylabel(str(i))
@@ -60,14 +128,19 @@ class Manager:
 		plt.plot(dateList, openList, color='m')
 		plt.subplot(257)
 		plt.plot(dateList, z_openList, color='c')
+		"""
+
+		print "Show..."
 		plt.show()
+		print "EXIT"
 
-
-	def chunks(self, l, n):
-	    num = len(l)/n
+	def chunks(self, l, size):
+	    #num = len(l)/n
 	    answer = []
-	    for i in xrange(0, len(l), num):
-	        answer.append(l[i:i+num])
+	    length = None
+	    for i in xrange(0, len(l), size):
+	        tmp = list(l[i:i+size])
+	        if len(tmp) == size: answer.append(tmp)
 	    return answer
 
 	def generateClustersTemp(self):
