@@ -72,22 +72,19 @@ class Manager:
 		print "Splitting raw data..."
 		dateList = [datetime.strptime(x[0], "%m/%d/%Y") for x in answerList]
 		openList = [x[1] for x in answerList]
-		#print openList
-		#closeList = [x[3] for x in answerList]  
-		#openList, highList, lowList, closeList, volumeList, adjCloseList = 
 
 		print "Normalizing data by Z-score..."
 		z_openList = stats.zscore(openList)
-		#print z_openList
 
 		print "Splitting into small periods..."
 		miniStockList = []
 
 		for i, miniStock in enumerate(self.chunks(openList, 57)):
 			miniStockList.append(self.normalizeByZScore(miniStock))
-		#data = np.asarray([np.asarray(x) for x in miniStockList])
 
-		print "Clustering..."
+		#--------------------------------------------------------------------------------
+		
+		print "Clustering into 10 groups..."
 		kmeans = KMeans(n_clusters=10)
 		kmeans.fit(miniStockList)
 
@@ -105,18 +102,13 @@ class Manager:
 		for key in clusters:
 			print str(key) + ": " + str(len(clusters[key]))
 
-		print "Graph invidivual clusters..."
-		self.graphClusters(clusters, dateList[:len(clusters[0][0])])
-
-		print "Graph reference..."
+		print "Transform using PCA..."
 		pca = PCA(n_components=2).fit(miniStockList)
 		pca_2d = pca.transform(miniStockList)
+		#
+		print "Graph reference..."
 		#plt.figure('Reference Plot')
 		#pl.scatter(pca_2d[:, 0], pca_2d[:, 1])
-
-		print "Graph clustering..."
-		plt.figure("Clusters transformed to 2D")
-		plt.scatter(pca_2d[:, 0], pca_2d[:, 1], c=kmeans.labels_)
 
 		"""
 		print "Graph raw data..."
@@ -130,9 +122,30 @@ class Manager:
 		plt.plot(dateList, z_openList, color='c')
 		"""
 
+		print "Graph invidivual clusters..."
+		self.graphClusters(clusters, dateList[:len(clusters[0][0])])
+		
+		#--------------------------------------------------------------------------------
+
+		print "Graph clustering..."
+		plt.figure("Clusters transformed to 2D")
+		plt.subplot(1,2,1)
+		plt.scatter(pca_2d[:, 0], pca_2d[:, 1], c=kmeans.labels_)
+
+		print "Calculating for elbow method..."
+		inertia = []
+		for x in range(1, 31):
+			kmeans = KMeans(n_clusters=x)
+			kmeans.fit(miniStockList)
+			inertia.append(kmeans.inertia_)
+		plt.subplot(1,2,2)
+		plt.plot(inertia)
+
+		#--------------------------------------------------------------------------------
+
 		print "Show..."
 		plt.show()
-		print "EXIT"
+		print "EXIT SUCCESS"
 
 	def chunks(self, l, size):
 	    #num = len(l)/n
@@ -148,4 +161,5 @@ class Manager:
 
 	def raiseNotImplemented(self):
 		raise RuntimeError("ERROR: not yet implemented.")
+
 
