@@ -12,6 +12,11 @@
   In directory ./cluster/:
   
 	$ python runner.py
+
+### Dependencies
+
+* Anaconda: http://docs.continuum.io/anaconda/install
+* Quantopian Zipline: https://github.com/quantopian/zipline
 	
 ### Goals
 Sentiment Analysis
