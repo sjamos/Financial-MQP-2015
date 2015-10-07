@@ -15,10 +15,9 @@
 
 ### Dependencies
 
-* Anaconda: http://docs.continuum.io/anaconda/install
-* Quantopian Zipline: https://github.com/quantopian/zipline
-* Theano dependencies: $ conda install mingw libpython
-* Theano: http://deeplearning.net/software/theano/install.html
+* NumPy, SciPy, scikit-learn (use Anaconda): http://docs.continuum.io/anaconda/install
+* Lasagne (requires Theano): http://lasagne.readthedocs.org/en/latest/user/installation.html
+* Quantopian Zipline (backtesting): https://github.com/quantopian/zipline
 	
 ### Goals
 Sentiment Analysis
