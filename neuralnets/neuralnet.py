@@ -23,20 +23,20 @@ def load_dataset():
 	# load data from csv file
 	import csv
 	f = open('usdjpy5year-dhloc.csv');
-	raw_data = list(csv.reader(f));
+	raw_data = list(csv.reader(f)); # read in data
 	
 	# pre-process data (day, high, low, open, close) -> (day, high-open, close-open, low-open)
 	data = [];
 	for row in raw_data:
 		t = [];
 		t.append(int(row[0])); #day
-		c = float(row[3]);
+		c = float(row[3]); # open
 		t.append(float(row[1]) - c); #high - open
 		t.append(float(row[4]) - c); #close - open
 		t.append(float(row[2]) - c); #low - open
 		data.append(t);
 	
-	
+	# expected output
 	target = []
 	for i in range(len(data)):
 		if (i == 0):
@@ -45,27 +45,30 @@ def load_dataset():
 		#print(row);
 		t = [0];
 		if row[2] > 0:
-			t[0] = 1;
-			
+			t[0] = 1;		
+		target.append(t); # list with one element, one for high, or zero for low
 		
-		target.append(t);
-		
-	del data[-1];
+	del data[-1]; # delete to shift target and data over to account for predicting next day, not today
 	#print(target);
 	#return 0;
-	# normalize data
+	
+	# normalize data by scaling between -1 and 1
+	# makes search space smaller for the pattern detection
 	m = np.matrix(data);
 	for i in range(np.size(m, 1)):
 		d = m[:, i];
 		m[:, i] = -1 + 2 * ((d - min(d))/(max(d) - min(d)))
-	 
+	
 	#SEQ_LENGTH = len(data);
+	# input (x, y) pairs as input, expected output
 	X_train = np.reshape(m.getA1(), (BATCH_SIZE, SEQ_LENGTH, FEATURES_SIZE));
 	X_train = X_train.astype(theano.config.floatX);
 	
 	y_train = np.reshape(np.matrix(target).getA1(), (BATCH_SIZE, SEQ_LENGTH, OUTPUT_SIZE));
 	y_train = y_train.astype(theano.config.floatX);
 	return X_train, y_train, X_train, y_train;
+	
+	# not useful
 	X_val = X_train[-1].reshape((1, SEQ_LENGTH, FEATURES_SIZE));
 	y_val = y_train[-1].reshape((1, SEQ_LENGTH, OUTPUT_SIZE));
 	X_train = X_train[:-1];
@@ -85,7 +88,7 @@ def main(model='mlp'):
 	l_in = lasagne.layers.InputLayer((None, SEQ_LENGTH, FEATURES_SIZE))
 
 	#TODO: use adam, gru, and steeper activation
-	num_units = 50 #number of units in LSTM layer
+	num_units = 50 # number of units in LSTM layer
 	network = lasagne.layers.LSTMLayer(l_in, num_units=num_units, learn_init=True, grad_clipping=5)
 	network = lasagne.layers.ReshapeLayer(network, (-1, num_units))
 	
@@ -97,11 +100,15 @@ def main(model='mlp'):
 	network = lasagne.layers.ReshapeLayer(network, (batchsize, seqlen, num_classes))
 	
 	print("Total number of network parameters: ", lasagne.layers.count_params(network));
-	prediction = lasagne.layers.get_output(network, deterministic=False)
-
+	
+	# determine loss function
+	# not deterministic because Dropout drops a random number of neuron outputs in each layer
+	# helps with overfitting
+	# only use during training, test with deterministic=True
+	prediction = lasagne.layers.get_output(network, deterministic=False) 
 	loss = lasagne.objectives.binary_crossentropy(prediction, target_var)
 	
-	
+	#regularization, l2 and l1 and dropout are other options
 	regu = 0.00005
 	regu_loss = lasagne.regularization.regularize_network_params(network, lasagne.regularization.l2)
 	loss = loss + regu * regu_loss
@@ -110,22 +117,25 @@ def main(model='mlp'):
 	
 	#updates = lasagne.updates.adagrad(loss, params, 0.01)
 	#updates = lasagne.updates.nesterov_momentum(loss, params, learning_rate=0.01, momentum=0.9)
-	updates = lasagne.updates.adam(loss, params, learning_rate=0.001)
+	#updates is a function
+	updates = lasagne.updates.adam(loss, params, learning_rate=0.001) #training method (not gradient descent)
 
-	train_fn = theano.function([l_in.input_var, target_var], loss, updates=updates)
+	# from example. train_fn is a pointer to a function. decide that you return loss
+	train_fn = theano.function([l_in.input_var, target_var], loss, updates=updates) # remove updates=updates to predict without training
 	
+	# same thing as above, but without regularization/dropout
 	val_pred = lasagne.layers.get_output(network, deterministic=True)
 	val_loss = lasagne.objectives.binary_crossentropy(val_pred, target_var).mean();
 	val_acc = T.mean(T.eq(T.round(val_pred), target_var))
-	val_fn = theano.function([l_in.input_var, target_var], [val_loss, val_acc])
-	max_acc = 0
+	val_fn = theano.function([l_in.input_var, target_var], [val_loss, val_acc]) #decide what you want value function to return
+	max_acc = 0 # max accuracy
 	print("Training ...")
 	try:
 		for epoch in range(num_epochs):
 			for _ in range(10):
-				cost_train = train_fn(X_train, y_train)
+				cost_train = train_fn(X_train, y_train) #result of binary_crossentropy loss function
 				print("Training cost = {}".format(cost_train))
-			cost_val, acc_val = val_fn(X_val, y_val)
+			cost_val, acc_val = val_fn(X_val, y_val) 
 			if acc_val > max_acc:
 				max_acc = acc_val
 				
