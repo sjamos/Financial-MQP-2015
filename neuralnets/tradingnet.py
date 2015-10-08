@@ -98,7 +98,8 @@ class TradingNet(object):
 		Outputs a list of digits between 0 and 1 for all timesteps in the sequence
 	'''
 	def predict(self, x):
-			
+		print x
+		print self.max_length, self.num_inputs
 		pred_x = np.array(x).reshape((1, self.max_length, self.num_inputs))
 		pred_x = pred_x.astype(theano.config.floatX)
 		pred_mask = np.ones((1, self.max_length)).astype(theano.config.floatX)
@@ -108,23 +109,3 @@ class TradingNet(object):
 		ret = pred_fn(pred_x, pred_mask)
 		ret = ret.reshape((self.max_length, self.num_outputs))
 		return ret
-
-x = [
-	[[0.1],[0.2],[0.3],[0.4],[0.5]],
-	[[-0.1],[-0.2],[-0.3],[-0.4],[-0.5]]
-	]
-y = [
-	[[1],[0],[1],[0],[1]],
-	[[1],[0],[1],[0],[1]]
-]
-
-#In this example...
-
-#Number of sequences: 2
-#Number of timesteps per sequence: 5
-#Number of inputs per timestep: 1
-
-testnet = TradingNet(x, y)
-
-testprediction = testnet.predict([[0.1],[0.2],[0.3],[0.4],[0.5]]) #input is one full sequence
-print(testprediction) #expected: [[1],[0],[1],[0],[1]]

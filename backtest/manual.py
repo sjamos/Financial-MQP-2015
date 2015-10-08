@@ -25,6 +25,12 @@ def handle_data(context, data):
     order(symbol('AAPL'), 10)
     record(AAPL=data[symbol('AAPL')].price)
 
+def before_trading_start(context, data):
+	pass
+
+def analyze():
+	pass
+
 # Create algorithm object passing in initialize and
 # handle_data functions
 algo_obj = TradingAlgorithm(initialize=initialize, 

@@ -40,7 +40,7 @@ class Manager:
 		"""
 		# dateList, openList, highList, lowList, closeList, volumeList, adjCloseList 
 		# unpack=True
-		return np.genfromtxt(fileName, dtype=None, delimiter=',', skiprows=1, usecols=(0,1,2,3,4,5,6)) 
+		return np.genfromtxt(fileName, dtype=None, delimiter=',', skiprows=1, usecols=(0,1,2,3,4,5,6))
 
 	def normalizeByZScore(self, dataList):
 		"""	Normalizes a list by Z-Score.
@@ -64,6 +64,28 @@ class Manager:
 				plt.subplot(2,5,i+1)
 				plt.ylabel("Cluster" + str(i))
 				plt.plot(dateList, stock)
+
+	def getXandY(self, fileName):
+		rawData = self.loadDataFromFile(fileName) #dateList, openList, highList, lowList, closeList, volumeList, adjCloseList 
+		data = [[ x[1], x[2]-x[1], x[3]-x[1], x[4]-x[1] ] for x in rawData] # normalize down
+		
+		target = []
+		for i in range(len(data)):
+			if (i == 0):
+				continue;
+			row = data[i];
+			#print(row);
+			t = [0];
+			if row[2] > 0:
+				t[0] = 1;		
+			target.append(t); # list with one element, one for high, or zero for low
+		
+		#plt.figure("training data")
+		#plt.plot([x[1] for x in data])
+		#plt.show()
+
+		del data[-1]; # delete last data entry, because it won't be used
+		return (data, target)
 
 	def run(self, fileName):
 		print "Loading data..."
