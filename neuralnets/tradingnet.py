@@ -98,7 +98,7 @@ class TradingNet(object):
 		Outputs a list of digits between 0 and 1 for all timesteps in the sequence
 	'''
 	def predict(self, x):
-		print x
+		#print x
 		print self.max_length, self.num_inputs
 		pred_x = np.array(x).reshape((1, self.max_length, self.num_inputs))
 		pred_x = pred_x.astype(theano.config.floatX)

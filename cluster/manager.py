@@ -65,6 +65,7 @@ class Manager:
 				plt.ylabel("Cluster" + str(i))
 				plt.plot(dateList, stock)
 
+	
 	def getXandY(self, fileName):
 		rawData = self.loadDataFromFile(fileName) #dateList, openList, highList, lowList, closeList, volumeList, adjCloseList 
 		data = [[ x[1], x[2]-x[1], x[3]-x[1], x[4]-x[1] ] for x in rawData] # normalize down
@@ -86,6 +87,29 @@ class Manager:
 
 		del data[-1]; # delete last data entry, because it won't be used
 		return (data, target)
+
+
+	@staticmethod
+	def getTargets(data):
+		# data stored as (open, high, low, close, volume, price)
+		i_close = 3
+		target = []
+		for i in range(len(data)-1):
+			today = data[i]
+			tomorrow = data[i+1]
+			t = [0]
+			if today[i_close] < tomorrow[i_close]:
+				t[0] = 1;	
+			target.append(t) # list with one element, one for high, or zero for low
+		del data[-1]; # delete last data entry, because it won't be used
+		#plt.figure("training data")
+		#plt.plot([x[i_close] for x in data])
+		#plt.plot([x[0]+100 for x in target])
+		#plt.show()
+		assert len(data) == len(target), "ERROR: data and target must have same length."
+		for day in data:
+			assert len(day) == 6, "ERROR: day has " + str(len(day)) + " elements instead of 6."
+		return target	
 
 	def run(self, fileName):
 		print "Loading data..."
