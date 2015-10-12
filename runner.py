@@ -184,7 +184,7 @@ def analyze(perf):
 		plt.figure(2)
 		plt.plot([x/perf.portfolio_value[0] for x in perf.portfolio_value])
 		plt.plot([x/perf.SPY[0] for x in perf.SPY])
-		plt.legend(['open', 'high', 'low', 'close', 'volume', 'price'], loc='upper left')
+		plt.legend(['algorithm', 'SPY'], loc='upper left')
 	except:
 		print "Graphing error in analyze()!"
 	
