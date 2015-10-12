@@ -26,10 +26,119 @@ from sklearn.cluster import KMeans
 from sklearn.decomposition import PCA
 import pylab as pl
 
+#==============================================================================================
+
 class Manager:
 
 	def __init__(self):
 		pass
+
+	@staticmethod
+	def normalizeByZScore(dataList):
+		"""	Normalizes a list by Z-Score.
+			Parameters:
+				dataList (list of float): data to normalize.
+			Returns:
+				The normalized list of data, as an nparray.
+		"""
+		return stats.zscore(dataList)
+
+	@staticmethod
+	def getTargets(data):
+		# data stored as (open, high, low, close, volume, price)
+		# currently no volume or price
+
+		# expected output
+		target = []
+		for i in range(len(data)):
+			if (i == 0):
+				continue;
+			row = data[i];
+			#print(row);
+			t = [0];
+			if row[3] > 0: # if the close is higher than 0, which is the normalized open
+				t[0] = 1;		
+			target.append(t); # list with one element, one for high, or zero for low
+
+
+		"""
+		new_data = np.delete(data, (len(data)-1), axis=0)
+		print len(new_data)
+		print len(new_data[-1])
+		print new_data[len(new_data)-3:]
+		
+		for i in range(len(data)):
+			if np.array_equal(data[i], new_data[i]):
+				print i
+				print new_data[i]
+				print new_data[i]
+				assert False
+		"""		
+		#plt.figure("training data")
+		#plt.plot([x[i_close] for x in data])
+		#plt.plot([x[0]+100 for x in target])
+		#plt.show()
+		assert len(data) == len(target) + 1, "ERROR: data and target must have same length."
+		for day in data:
+			assert len(day) == 4, "ERROR: day has " + str(len(day)) + " elements instead of 4."
+		return target
+
+	@staticmethod
+	def getClosingTargets(data):
+		# data stored as (open, high, low, close, volume, price)
+		# currently no volume or price
+		i_close = 3
+		target = []
+		for i in range(len(data)-1):
+			today = data[i]
+			tomorrow = data[i+1]
+			t = [0]
+			if today[i_close] < tomorrow[i_close]:
+				t[0] = 1;	
+			target.append(t) # list with one element, one for high, or zero for low
+		#del data[-1]; # delete last data entry, because it won't be used
+
+		"""
+		new_data = np.delete(data, (len(data)-1), axis=0)
+		print len(new_data)
+		print len(new_data[-1])
+		print new_data[len(new_data)-3:]
+		
+		for i in range(len(data)):
+			if np.array_equal(data[i], new_data[i]):
+				print i
+				print new_data[i]
+				print new_data[i]
+				assert False
+		"""		
+		#plt.figure("training data")
+		#plt.plot([x[i_close] for x in data])
+		#plt.plot([x[0]+100 for x in target])
+		#plt.show()
+		assert len(data) == len(target) + 1, "ERROR: data and target must have same length."
+		for day in data:
+			assert len(day) == 4, "ERROR: day has " + str(len(day)) + " elements instead of 4."
+		return target
+
+	@staticmethod
+	def normalize(data_list):
+		"""	Z-score the first 4 elements together, and the 5th element separately.
+			Note: volume (element 5) is currently being dropped.
+		"""
+		noVolumeList = [x[:4] for x in data_list]
+		zList = stats.zscore(noVolumeList, axis=None)
+		return zList
+		#for i in range(len(data_list[0]) - 2):
+		#	answerList.append([x[i] for x in data_list])
+		#plt.figure(1)
+		#for column in zList:
+		#	plt.plot(column[:100])
+		#plt.legend(['open', 'high', 'low', 'close', 'volume', 'price'], loc='upper left')
+		#plt.show()
+
+	#==============================================================================================
+	# DEPRECATED
+
 
 	def loadDataFromFile(self, fileName):
 		"""	Reads in data from a .csv file.
@@ -42,14 +151,7 @@ class Manager:
 		# unpack=True
 		return np.genfromtxt(fileName, dtype=None, delimiter=',', skiprows=1, usecols=(0,1,2,3,4,5,6))
 
-	def normalizeByZScore(self, dataList):
-		"""	Normalizes a list by Z-Score.
-			Parameters:
-				dataList (list of float): data to normalize.
-			Returns:
-				The normalized list of data, as an nparray.
-		"""
-		return stats.zscore(dataList)
+
 
 	def graphClusters(self, clusters, dateList):
 		"""
@@ -89,27 +191,7 @@ class Manager:
 		return (data, target)
 
 
-	@staticmethod
-	def getTargets(data):
-		# data stored as (open, high, low, close, volume, price)
-		i_close = 3
-		target = []
-		for i in range(len(data)-1):
-			today = data[i]
-			tomorrow = data[i+1]
-			t = [0]
-			if today[i_close] < tomorrow[i_close]:
-				t[0] = 1;	
-			target.append(t) # list with one element, one for high, or zero for low
-		del data[-1]; # delete last data entry, because it won't be used
-		#plt.figure("training data")
-		#plt.plot([x[i_close] for x in data])
-		#plt.plot([x[0]+100 for x in target])
-		#plt.show()
-		assert len(data) == len(target), "ERROR: data and target must have same length."
-		for day in data:
-			assert len(day) == 6, "ERROR: day has " + str(len(day)) + " elements instead of 6."
-		return target	
+
 
 	def run(self, fileName):
 		print "Loading data..."
