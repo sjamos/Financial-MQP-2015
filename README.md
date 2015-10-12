@@ -11,7 +11,7 @@
 #### Cluster Demo
   In directory ./cluster/:
   
-	$ python runner.py
+	$ python runner.py [strategy_num]
 
 ### Dependencies
 

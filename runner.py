@@ -14,8 +14,11 @@
 import sys
 import argparse
 
+import numpy as np
+np.random.seed(13)
+
 # clustering, managing, and neural nets
-from cluster.manager import Manager
+from manager.manager import Manager
 from neuralnets.tradingnet import TradingNet
 
 # handling dates
@@ -29,6 +32,7 @@ from zipline.utils.factory import load_bars_from_yahoo
 
 # analysis
 import matplotlib.pyplot as plt
+
 
 # glabal strategy assigned in main()
 global STRATEGY_CLASS 
@@ -141,6 +145,7 @@ def handle_data(context, data):
 	# Take entire position out
 	else:
 		order_target_percent(context.security, 0)
+		#order_target_percent(context.security, -.99)
 		print "SELL!"
 
 	record(SPY=data[context.security].price)

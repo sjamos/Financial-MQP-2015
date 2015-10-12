@@ -51,7 +51,7 @@ class Manager:
 		# expected output
 		target = []
 		for i in range(len(data)):
-			if (i == 0):
+			if i == 0:
 				continue;
 			row = data[i];
 			#print(row);
