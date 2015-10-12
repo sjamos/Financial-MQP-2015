@@ -58,7 +58,7 @@ def testNN():
 def loadTrainingData():
 	print "Load training data..."
 	start = datetime(2010, 1, 1, 0, 0, 0, 0, pytz.utc)
-	end = datetime(2011, 1, 1, 0, 0, 0, 0, pytz.utc)
+	end = datetime(2010, 3, 1, 0, 0, 0, 0, pytz.utc)
 	data = load_bars_from_yahoo(stocks=['SPY'], 
 								start=start,
 								end=end)
@@ -89,7 +89,7 @@ def initialize(context):
 	target = Manager.getTargets(context.normalized_data)
 	context.training_data = context.training_data[:-1]			# delete last data entry, because it won't be used
 	context.normalized_data = context.normalized_data[:-1] 		# delete last data entry, because it won't be used
-	print target
+	#print target
 	plt.figure(1)
 	for i in range(len(context.normalized_data[0])):
 		plt.plot([x[i] for x in context.normalized_data])
@@ -98,7 +98,7 @@ def initialize(context):
 
 	print "Train..."
 	#print len(context.training_data), len(context.normalized_data), len(target)
-	context.strategy = STRATEGY_CLASS([context.normalized_data], [target], num_epochs=200)
+	context.strategy = STRATEGY_CLASS([context.normalized_data], [target], num_epochs=2000)
 	
 	print "Capital Base: " + str(context.portfolio.cash)
 
@@ -110,12 +110,12 @@ def initialize(context):
 # Gets called every time-step
 def handle_data(context, data):
 	#print "Cash: $" + str(context.portfolio.cash), "Data: ", str(len(context.training_data))
-	assert context.portfolio.cash > 0.0, "ERROR: negative context.portfolio.cash"
+	#assert context.portfolio.cash > 0.0, "ERROR: negative context.portfolio.cash"
 	assert len(context.training_data) == context.training_data_length; "ERROR: "
 
 	# data stored as (open, high, low, close, volume, price)
 	feed_data = ([	
-					data[context.security].open, 
+					data[context.security].open 	- data[context.security].open, 
 					data[context.security].high 	- data[context.security].open,
 					data[context.security].low 		- data[context.security].open,
 					data[context.security].close 	- data[context.security].open
@@ -163,7 +163,7 @@ def has_orders(context, data):
 # to be called after the backtest
 def analyze(perf):
 	print "Analyze..."
-	fig = plt.figure()
+	plt.figure(1)
 
 	"""
 	# manager.normalizeByZScore()
@@ -179,6 +179,14 @@ def analyze(perf):
 	ax2 = plt.subplot(212, sharex=ax1)
 	perf.SPY.plot(ax=ax2)
 	ax2.set_ylabel('SPY stock price')
+
+	try:
+		plt.figure(2)
+		plt.plot([x/perf.portfolio_value[0] for x in perf.portfolio_value])
+		plt.plot([x/perf.SPY[0] for x in perf.SPY])
+		plt.legend(['open', 'high', 'low', 'close', 'volume', 'price'], loc='upper left')
+	except:
+		print "Graphing error in analyze()!"
 	
 	plt.show()
 
@@ -191,8 +199,8 @@ def runMaster():
 	"""
 
 	# load data, stored as (open, high, low, close, volume, price)
-	start = datetime(2010, 1, 2, 0, 0, 0, 0, pytz.utc)
-	end = datetime(2011, 2, 2, 0, 0, 0, 0, pytz.utc)
+	start = datetime(2010, 1, 1, 0, 0, 0, 0, pytz.utc)
+	end = datetime(2010, 6, 1, 0, 0, 0, 0, pytz.utc)
 	data = load_bars_from_yahoo(stocks=['SPY'], 
 								start=start,
 								end=end)
