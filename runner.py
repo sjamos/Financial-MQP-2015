@@ -12,6 +12,7 @@
 """
 
 import sys
+import time
 import argparse
 
 # seed to prevent
@@ -34,8 +35,8 @@ from zipline.utils.factory import load_bars_from_yahoo
 # analysis
 import matplotlib.pyplot as plt
 
-# glabal strategy assigned in main()
-global STRATEGY_CLASS 
+# glabal strategy assigned in main(), along with the years to train, years to backtest, and epochs to train
+global STRATEGY_CLASS, TRAINING_TIME, BACKTEST_TIME, EPOCHS
 strategy_dict = {
 	1: TradingNet
 }
@@ -44,8 +45,8 @@ strategy_dict = {
 
 def loadTrainingData():
 	print "Load training data..."
-	start = datetime(2010, 1, 1, 0, 0, 0, 0, pytz.utc)
-	end = datetime(2010, 3, 1, 0, 0, 0, 0, pytz.utc)
+	start = datetime(2002, 1, 1, 0, 0, 0, 0, pytz.utc)
+	end = datetime(2002+TRAINING_TIME, 1, 1, 0, 0, 0, 0, pytz.utc)
 	data = load_bars_from_yahoo(stocks=['SPY'], 
 								start=start,
 								end=end)
@@ -69,6 +70,7 @@ def loadTrainingData():
 # Define algorithm
 def initialize(context):
 	print "Initialize..."
+	context.days = 0
 	context.security = symbol('SPY')
 	context.training_data = loadTrainingData()
 	context.training_data_length = len(context.training_data) - 1
@@ -86,7 +88,7 @@ def initialize(context):
 
 	print "Train..."
 	#print len(context.training_data), len(context.normalized_data), len(target)
-	context.strategy = STRATEGY_CLASS([context.normalized_data], [target], num_epochs=2000)
+	context.strategy = STRATEGY_CLASS([context.normalized_data], [target], num_epochs=EPOCHS)
 	
 	print "Capital Base: " + str(context.portfolio.cash)
 
@@ -97,6 +99,7 @@ def handle_data(context, data):
 	#print "Cash: $" + str(context.portfolio.cash), "Data: ", str(len(context.training_data))
 	#assert context.portfolio.cash > 0.0, "ERROR: negative context.portfolio.cash"
 	assert len(context.training_data) == context.training_data_length; "ERROR: "
+	context.days += 1
 
 	# data stored as (open, high, low, close, volume, price)
 	feed_data = ([	
@@ -131,6 +134,7 @@ def handle_data(context, data):
 
 	record(SPY=data[context.security].price)
 
+
 #==============================================================================================
 
 def has_orders(context, data):
@@ -148,13 +152,16 @@ def has_orders(context, data):
 
 #==============================================================================================
 
-# to be called after the backtest
+
 def analyze(perf):
+	""" To be called after the backtest. Will produce a .png in the /output/ directory."""
 	print "Analyze..."
 	plt.figure(1)
 	plt.plot([x/perf.portfolio_value[0] for x in perf.portfolio_value])
 	plt.plot([x/perf.SPY[0] for x in perf.SPY])
 	plt.legend(['algorithm', 'SPY'], loc='upper left')
+	outputGraph = "algo_" + str(time.strftime("%Y-%m-%d_%H-%M-%S"))
+	plt.savefig("output/" + outputGraph, bbox_inches='tight')
 	plt.show()
 
 #==============================================================================================
@@ -165,8 +172,8 @@ def runMaster():
 	"""
 
 	# load data, stored as (open, high, low, close, volume, price)
-	start = datetime(2010, 1, 1, 0, 0, 0, 0, pytz.utc)
-	end = datetime(2010, 6, 1, 0, 0, 0, 0, pytz.utc)
+	start = datetime(2002, 1, 1, 0, 0, 0, 0, pytz.utc)
+	end = datetime(2002+BACKTEST_TIME, 6, 1, 0, 0, 0, 0, pytz.utc)
 	data = load_bars_from_yahoo(stocks=['SPY'], 
 								start=start,
 								end=end)
@@ -184,13 +191,23 @@ def runMaster():
 
 def main():
 	"""	Allows for switching easily between different tests using a different STRATEGY_CLASS.
-		Must pick a STRATEGY_CLASS from the strategy_dict"""	
-	global STRATEGY_CLASS 
+		strategy_num: Must pick a STRATEGY_CLASS from the strategy_dict.
+		training_time: years since 2002
+		backtest_time: years since 2002
+	"""	
+	global STRATEGY_CLASS, TRAINING_TIME, BACKTEST_TIME, EPOCHS
 	parser = argparse.ArgumentParser()
-	parser.add_argument("strategy_num", type=int, choices=[key for key in strategy_dict])
+	parser.add_argument("-n", "--strategy_num", default=1, type=int, choices=[key for key in strategy_dict])
+	parser.add_argument("-t", "--training_time", default=1, type=int, choices=[year for year in range(1,14)])
+	parser.add_argument("-b", "--backtest_time", default=1, type=int, choices=[year for year in range(1,14)])
+	parser.add_argument("-e", "--epochs", default=2000, type=int)
 	args = parser.parse_args()
 	STRATEGY_CLASS = strategy_dict[args.strategy_num]
+	TRAINING_TIME = args.training_time
+	BACKTEST_TIME = args.backtest_time
+	EPOCHS = args.epochs
 	print "Using:", str(STRATEGY_CLASS)
+	print "Train", TRAINING_TIME, "year,", "Test", BACKTEST_TIME, "year."
 	runMaster()
 
 #==============================================================================================
