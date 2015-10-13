@@ -113,3 +113,20 @@ class TradingNet(object):
 		ret = pred_fn(pred_x, pred_mask)
 		ret = ret.reshape((self.max_length, self.num_outputs))
 		return ret
+
+def testNN():
+	x = [
+		[[0.1],[0.2],[0.3],[0.4],[0.5]],
+		[[-0.1],[-0.2],[-0.3],[-0.4],[-0.5]]
+	]
+	y = [
+		[[1],[0],[1],[0],[1]],
+		[[1],[0],[1],[0],[1]]
+	]
+	#In this example...
+	#Number of sequences: 2
+	#Number of timesteps per sequence: 5
+	#Number of inputs per timestep: 1
+	testnet = TradingNet(x, y, num_epochs=2)
+	testprediction = testnet.predict([[0.1],[0.2],[0.3],[0.4],[0.5]]) #input is one full sequence
+	print(testprediction) #expected: [[1],[0],[1],[0],[1]]

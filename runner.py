@@ -14,6 +14,7 @@
 import sys
 import argparse
 
+# seed to prevent
 import numpy as np
 np.random.seed(13)
 
@@ -33,31 +34,13 @@ from zipline.utils.factory import load_bars_from_yahoo
 # analysis
 import matplotlib.pyplot as plt
 
-
 # glabal strategy assigned in main()
 global STRATEGY_CLASS 
 strategy_dict = {
 	1: TradingNet
 }
 
-def testNN():
-	x = [
-		[[0.1],[0.2],[0.3],[0.4],[0.5]],
-		[[-0.1],[-0.2],[-0.3],[-0.4],[-0.5]]
-	]
-	y = [
-		[[1],[0],[1],[0],[1]],
-		[[1],[0],[1],[0],[1]]
-	]
-	#In this example...
-	#Number of sequences: 2
-	#Number of timesteps per sequence: 5
-	#Number of inputs per timestep: 1
-	testnet = TradingNet(x, y, num_epochs=2)
-	testprediction = testnet.predict([[0.1],[0.2],[0.3],[0.4],[0.5]]) #input is one full sequence
-	print(testprediction) #expected: [[1],[0],[1],[0],[1]]
-
-
+#==============================================================================================
 
 def loadTrainingData():
 	print "Load training data..."
@@ -81,6 +64,7 @@ def loadTrainingData():
 	])
 	return answer
 
+#==============================================================================================
 
 # Define algorithm
 def initialize(context):
@@ -106,10 +90,7 @@ def initialize(context):
 	
 	print "Capital Base: " + str(context.portfolio.cash)
 
-
-
-
-
+#==============================================================================================
 
 # Gets called every time-step
 def handle_data(context, data):
@@ -150,6 +131,7 @@ def handle_data(context, data):
 
 	record(SPY=data[context.security].price)
 
+#==============================================================================================
 
 def has_orders(context, data):
 	# Return true if there are pending orders.
@@ -158,45 +140,24 @@ def has_orders(context, data):
 		orders = get_open_orders(stock)
 		if orders:
 			for oo in orders:
-				message = 'Open order for {amount} shares in {stock}'  
-				message = message.format(amount=oo.amount, stock=stock)
-				log.info(message)
+				#message = 'Open order for {amount} shares in {stock}'  
+				#message = message.format(amount=oo.amount, stock=stock)
+				#log.info(message)
 				has_orders = True
 			return has_orders
 
+#==============================================================================================
 
 # to be called after the backtest
 def analyze(perf):
 	print "Analyze..."
 	plt.figure(1)
-
-	"""
-	# manager.normalizeByZScore()
-	plt.subplot(211)
-	plt.plot(perf.portfolio_value)
-	plt.plot(perf.SPY)
-	"""
-
-	ax1 = plt.subplot(211)
-	perf.portfolio_value.plot(ax=ax1)
-	ax1.set_ylabel('portfolio value')
-	
-	ax2 = plt.subplot(212, sharex=ax1)
-	perf.SPY.plot(ax=ax2)
-	ax2.set_ylabel('SPY stock price')
-
-	try:
-		plt.figure(2)
-		plt.plot([x/perf.portfolio_value[0] for x in perf.portfolio_value])
-		plt.plot([x/perf.SPY[0] for x in perf.SPY])
-		plt.legend(['algorithm', 'SPY'], loc='upper left')
-	except:
-		print "Graphing error in analyze()!"
-	
+	plt.plot([x/perf.portfolio_value[0] for x in perf.portfolio_value])
+	plt.plot([x/perf.SPY[0] for x in perf.SPY])
+	plt.legend(['algorithm', 'SPY'], loc='upper left')
 	plt.show()
 
-
-
+#==============================================================================================
 
 def runMaster():
 	"""	Training data for the NN will be for 2002-2012
@@ -219,22 +180,20 @@ def runMaster():
 	perf_manual = algo_obj.run(data)
 	analyze(perf_manual)
 
+#==============================================================================================
 
 def main():
-	"""	Allows for switching easily between different tests using a different STRATEGY_CLASS."""
-	
-	# must pick a STRATEGY_CLASS from the strategy_dict
-	global STRATEGY_CLASS
-
-	# Argument parser
+	"""	Allows for switching easily between different tests using a different STRATEGY_CLASS.
+		Must pick a STRATEGY_CLASS from the strategy_dict"""	
+	global STRATEGY_CLASS 
 	parser = argparse.ArgumentParser()
 	parser.add_argument("strategy_num", type=int, choices=[key for key in strategy_dict])
 	args = parser.parse_args()
 	STRATEGY_CLASS = strategy_dict[args.strategy_num]
 	print "Using:", str(STRATEGY_CLASS)
-	#testNN()
 	runMaster()
 
+#==============================================================================================
 
 if __name__ == "__main__":
 	main()
