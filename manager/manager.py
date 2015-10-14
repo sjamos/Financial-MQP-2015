@@ -50,7 +50,7 @@ class Manager:
 		"""
 		target = []
 		for i in range(len(data)):
-			if i == 0:
+			if i == 0 or i == 1:
 				continue;
 			row = data[i];
 			t = [0];
@@ -58,7 +58,7 @@ class Manager:
 				t[0] = 1;		
 			target.append(t); # list with one element, one for high, or zero for low
 
-		assert len(data) == len(target) + 1, "ERROR: data and target must have same length."
+		assert len(data) == len(target) + 2, "ERROR: data and target must have same length."
 		for day in data:
 			assert len(day) == 4, "ERROR: day has " + str(len(day)) + " elements instead of 4."
 		return target
