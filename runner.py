@@ -36,7 +36,7 @@ from zipline.utils.factory import load_bars_from_yahoo
 import matplotlib.pyplot as plt
 
 # glabal strategy assigned in main(), along with the years to train, years to backtest, and epochs to train
-global STRATEGY_CLASS, TRAINING_TIME, BACKTEST_TIME, EPOCHS
+global STRATEGY_CLASS, TRAINING_TIME, BACKTEST_TIME, EPOCHS, TRAINING_STOCK, BACKTEST_STOCK
 strategy_dict = {
 	1: TradingNet
 }
@@ -47,9 +47,11 @@ strategy_dict = {
 def initialize(context):
 	"""	Define algorithm"""
 	print "Initialize..."
-	context.days = 0
-	context.security = symbol('SPY')
-	context.training_data = loadTrainingData()
+	global TRAINING_STOCK, BACKTEST_STOCK
+	context.security = None #becomes symbol(BACKTEST_STOCK)
+	context.benchmark = symbol('SPY')
+	
+	context.training_data = loadTrainingData(TRAINING_TIME, TRAINING_STOCK)
 	context.training_data_length = len(context.training_data) - 2
 	context.normalized_data = Manager.normalize(context.training_data) 	# will have to redo every time step
 	
@@ -62,8 +64,7 @@ def initialize(context):
 		plt.plot([x[i] for x in context.normalized_data])
 	plt.legend(['open', 'high', 'low', 'close', 'volume', 'price'], loc='upper left')
 	plt.show()
-	#plt.ion()
-	#plt.pause(0.001)
+
 	print "Train..."
 	#print len(context.training_data), len(context.normalized_data), len(target)
 	context.strategy = STRATEGY_CLASS([context.normalized_data], [target], num_epochs=EPOCHS)
@@ -77,7 +78,7 @@ def handle_data(context, data):
 	#print "Cash: $" + str(context.portfolio.cash), "Data: ", str(len(context.training_data))
 	#assert context.portfolio.cash > 0.0, "ERROR: negative context.portfolio.cash"
 	assert len(context.training_data) == context.training_data_length; "ERROR: "
-	context.days += 1
+	context.security = symbol(BACKTEST_STOCK)
 
 	# data stored as (open, high, low, close, volume, price)
 	feed_data = ([	
@@ -108,7 +109,8 @@ def handle_data(context, data):
 		order_target_percent(context.security, 0)
 		#order_target_percent(context.security, -.99)
 
-	record(SPY=data[context.security].price)
+	record(BENCH=data[context.security].price)
+	record(SPY=data[context.benchmark].price)
 
 #==============================================================================================
 
@@ -122,22 +124,25 @@ def has_orders(context, data):
 
 #==============================================================================================
 
-def analyze(perf):
+def analyze(perf_list):
 	""" To be called after the backtest. Will produce a .png in the /output/ directory."""
 	print "Analyze..."
-	plt.figure(1)
-	plt.plot([x/perf.portfolio_value[0] for x in perf.portfolio_value])
-	plt.plot([x/perf.SPY[0] for x in perf.SPY])
-	plt.legend(['algorithm', 'SPY'], loc='upper left')
-	outputGraph = "algo_" + str(time.strftime("%Y-%m-%d_%H-%M-%S"))
-	plt.savefig("output/" + outputGraph, bbox_inches='tight')
+	for i, perf in enumerate(perf_list):
+		plt.figure(i)
+		plt.plot([x/perf.portfolio_value[1] for x in perf.portfolio_value[1:]])
+		plt.plot([x/perf.BENCH[1] for x in perf.BENCH[1:]])
+		plt.xlabel("Time (Days)")
+		plt.ylabel("Percent Returns vs. SPY" + str(i))
+		plt.legend(['algorithm', 'BENCHMARK'], loc='upper left')
+		outputGraph = "algo_" + str(time.strftime("%Y-%m-%d_%H-%M-%S"))
+		plt.savefig("output/" + outputGraph, bbox_inches='tight')
 	plt.show()
 
 #==============================================================================================
 
-def loadTrainingData():
+def loadTrainingData(training_time, training_stock):
 	print "Load training data..."
-	answer = loadData(2002, 2002+TRAINING_TIME)
+	answer = loadData(2002, 2002+training_time, stock_list=[training_stock])
 	answer = loadConvertDataFormat(answer)
 	# only take adjusted (open, high, low, close)
 	# data stored as (open, high, low, close, volume, price)
@@ -161,13 +166,13 @@ def loadConvertDataFormat(data):
 
 #==============================================================================================
 
-def loadData(startYear, endYear, startM=1, endM=1):
+def loadData(startYear, endYear, stock_list, startM=1, endM=1):
 	"""	Load data, stored as (open, high, low, close, volume, price).
 		Must convert pandas.Panel --> pandas.DataFrame --> List of Lists
 	"""
 	start = datetime(startYear, startM, 1, 0, 0, 0, 0, pytz.utc)
 	end = datetime(endYear, endM, 1, 0, 0, 0, 0, pytz.utc) 
-	data = load_bars_from_yahoo(stocks=['SPY'], 
+	data = load_bars_from_yahoo(stocks=stock_list, 
 								start=start,
 								end=end)
 	return data
@@ -176,11 +181,18 @@ def loadData(startYear, endYear, startM=1, endM=1):
 
 def runMaster():
 	"""	Loads backtest data, and runs the backtest."""
-	backtestData = loadData(2002, 2001+BACKTEST_TIME, startM=1, endM=2)
-	print "Create algorithm..."
-	algo_obj = TradingAlgorithm(initialize=initialize, handle_data=handle_data)
-	perf_manual = algo_obj.run(backtestData)
+	global TRAINING_STOCK, BACKTEST_STOCK 
+	TRAINING_STOCK = 'SPY'
+	SELECT_STOCKS = ['AAPL', 'DIS', 'XOM', 'UNH', 'WMT']
+	algo_obj = TradingAlgorithm(initialize=initialize, handle_data=handle_data)	
+	perf_manual = []
+	for stock in SELECT_STOCKS:
+		BACKTEST_STOCK = stock
+		backtestData = loadData(2003, 2003+BACKTEST_TIME, stock_list=[stock, 'SPY']) #, startM=1, endM=2, 
+		print "Create algorithm..."
+		perf_manual.append(algo_obj.run(backtestData))
 	analyze(perf_manual)
+
 
 #==============================================================================================
 
@@ -209,3 +221,40 @@ def main():
 
 if __name__ == "__main__":
 	main()
+
+#==============================================================================================
+
+
+
+stocks_DJIA = ([
+				'MMM', 
+				'AXP', 
+				'AAPL',
+				'BA', 
+				'CAT', 
+				'CVX', 
+				'CSCS', 
+				'KO', 
+				'DIS', 
+				'DD', 
+				'XOM',
+				'GE',
+				'G',
+				'HD',
+				'IBM',
+				'INTC',
+				'JNJ',
+				'JPM',
+				'MCD',
+				'MRK',
+				'MSFT',
+				'MKE',
+				'PFE',
+				'PG',
+				'TRV',
+				'UTX',
+				'UNH',
+				'VZ',
+				'V',
+				'WMT'
+])
