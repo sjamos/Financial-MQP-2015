@@ -54,7 +54,7 @@ class Manager:
 				continue;
 			row = data[i];
 			t = [0];
-			if row[3] > 0: # if the close is higher than 0, which is the normalized open
+			if row[3] > 0: # row[0] if the close is higher than 0, which is the normalized open
 				t[0] = 1;		
 			target.append(t); # list with one element, one for high, or zero for low
 
