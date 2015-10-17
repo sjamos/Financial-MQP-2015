@@ -18,8 +18,11 @@ import argparse
 import numpy as np
 np.random.seed(13)
 
-# clustering, managing, and neural nets
+# clustering
 from manager.manager import Manager
+from sklearn.cluster import KMeans
+
+# neural nets
 from neuralnets.tradingnet import TradingNet
 from neuralnets.deepnet import DeepNet, testNN
 
@@ -45,6 +48,39 @@ strategy_dict = {
 	1: TradingNet,
 	4: DeepNet
 }
+
+stocks_DJIA = ([
+				'MMM', 
+				'AXP', 
+				'AAPL',
+				'BA', 
+				'CAT', 
+				'CVX', 
+				#'CSCS', 
+				'KO', 
+				'DIS', 
+				'DD', 
+				'XOM',
+				'GE',
+				#'G',
+				'HD',
+				'IBM',
+				'INTC',
+				'JNJ',
+				'JPM',
+				'MCD',
+				'MRK',
+				'MSFT',
+				'MKE',
+				'PFE',
+				'PG',
+				'TRV',
+				'UTX',
+				'UNH',
+				'VZ',
+				#'V',
+				'WMT'
+])
 
 
 #==============================================================================================
@@ -160,8 +196,8 @@ def loadTrainingData(training_time, training_stock):
 	"""	Data stored as (open, high, low, close, volume, price)
 		Only take adjusted (open, high, low, close)
 	"""
-	print "Load training data..."
-	answer = loadData(2002, 2002+training_time, stock_list=[training_stock])
+	#print "Load training data..."
+	answer = loadData(2013, 2013+training_time, stock_list=[training_stock])
 	answer = loadConvertDataFormat(answer)
 	# choose whether or not to normalize
 	if IS_NORMALIZE:
@@ -206,6 +242,7 @@ def loadData(startYear, endYear, stock_list, startM=1, endM=1):
 								end=end)
 	return data
 
+
 #==============================================================================================
 
 def runMaster():
@@ -215,10 +252,77 @@ def runMaster():
 	perf_manual = []
 	for stock in SELECT_STOCKS:
 		BACKTEST_STOCK = stock
-		backtestData = loadData(2002, 2002+BACKTEST_TIME, stock_list=[stock, 'SPY']) #, startM=1, endM=2, 
+		backtestData = loadData(2013, 2013+BACKTEST_TIME, stock_list=[stock, 'SPY']) #, startM=1, endM=2, 
 		print "Create algorithm..."
 		perf_manual.append(algo_obj.run(backtestData))
 	analyze(perf_manual)
+
+#==============================================================================================
+
+def graphClusters(clusters):
+	"""
+		Parameters:
+			clusters (list): list of list(cluster) of list(stock) of doubles
+			dateList (list): list of dates 
+	"""
+	plt.figure("Clusters")
+	for i, cluster in enumerate(clusters):
+		for stock in clusters[i]:
+			plt.subplot(2,5,i+1)
+			plt.ylabel("Cluster" + str(i))
+			plt.plot(stock)
+	plt.show()
+
+#==============================================================================================
+
+def runClusters():
+	global TRAINING_STOCK, BACKTEST_STOCK, SELECT_STOCKS
+	
+	stocks_SP500 = np.genfromtxt('constituents.csv', dtype=None, delimiter=',', skiprows=1, usecols=(0))
+	stock_data_list = []
+	#target_list = []
+	for ticker in stocks_SP500:
+		try:
+			raw_data = loadTrainingData(TRAINING_TIME, ticker)
+			normalized_data = Manager.normalize(raw_data)
+			#target_list.append(Manager.getTargets(normalized_data))
+			if len(normalized_data) == 252:
+				stock_data_list.append(normalized_data[:-2]) 	# delete last data entry, because it won't be used
+			else:
+				print "Stock Error: Contained", len(normalized_data), "instead of 252."
+		except IOError:
+			print "IOError: Could not fetch", ticker, "from Yahoo! Finance."
+
+	kmeans = KMeans(n_clusters=10)
+	kmeans_data = [np.array(x).ravel() for x in stock_data_list]
+	kmeans.fit(kmeans_data)
+	clusters = {}
+	for i, label in enumerate(kmeans.labels_):
+		if label in clusters:
+			clusters[label].append(stock_data_list[i])
+		else:
+			clusters[label] = list()
+			clusters[label].append(stock_data_list[i])	
+
+	print "# of Clusters: " + str(len(clusters))
+	print "# of stocks: " + str(len(stock_data_list))
+	print "Cluster sizes: "
+	for key in clusters:
+		print str(key) + ": " + str(len(clusters[key]))
+	
+	print "Calculating for elbow method..."
+	inertia = []
+	for x in range(1, 100):
+		kmeans = KMeans(n_clusters=x)
+		kmeans.fit([np.array(x).ravel() for x in stock_data_list])
+		inertia.append(kmeans.inertia_)
+	plt.subplot(1,2,2)
+	plt.plot(inertia)
+	
+	graphClusters(clusters)
+
+	#strategy = STRATEGY_CLASS([normalized_data], [target], num_epochs=EPOCHS)
+
 
 
 #==============================================================================================
@@ -230,6 +334,7 @@ def main():
 		backtest_time: years since 2002
 	"""	
 	global STRATEGY_CLASS, TRAINING_TIME, BACKTEST_TIME, EPOCHS, IS_NORMALIZE
+	
 	parser = argparse.ArgumentParser()
 	parser.add_argument("-n", "--strategy_num", default=1, type=int, choices=[key for key in strategy_dict])
 	parser.add_argument("-t", "--training_time", default=1, type=int, choices=[year for year in range(0,14)])
@@ -238,6 +343,7 @@ def main():
 	parser.add_argument("-z", "--normalize", action='store_false', help='Turn normalization off.')
 	parser.add_argument("-o", "--overfit", action='store_false', help='Perform test with overfitting.')
 	args = parser.parse_args()
+	
 	STRATEGY_CLASS = strategy_dict[args.strategy_num]
 	TRAINING_TIME = args.training_time
 	BACKTEST_TIME = args.backtest_time
@@ -248,7 +354,8 @@ def main():
 		print "ERROR: not implemented"; return
 	print "Using:", str(STRATEGY_CLASS)
 	print "Train", TRAINING_TIME, "year,", "Test", BACKTEST_TIME, "year."
-	runMaster()
+	#runMaster()
+	runClusters()
 
 #==============================================================================================
 
@@ -258,36 +365,3 @@ if __name__ == "__main__":
 #==============================================================================================
 
 
-
-stocks_DJIA = ([
-				'MMM', 
-				'AXP', 
-				'AAPL',
-				'BA', 
-				'CAT', 
-				'CVX', 
-				'CSCS', 
-				'KO', 
-				'DIS', 
-				'DD', 
-				'XOM',
-				'GE',
-				'G',
-				'HD',
-				'IBM',
-				'INTC',
-				'JNJ',
-				'JPM',
-				'MCD',
-				'MRK',
-				'MSFT',
-				'MKE',
-				'PFE',
-				'PG',
-				'TRV',
-				'UTX',
-				'UNH',
-				'VZ',
-				'V',
-				'WMT'
-])
