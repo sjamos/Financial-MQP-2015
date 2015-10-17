@@ -1,13 +1,12 @@
 """
 	runner.py
 
+	See README.md for usage.
+
 	When creating a new class, you must ensure that it:
 		-accepts a list of lists of stock data in its constructor (data, target, num_epochs)
 		-has a predict() method
 		-is added to the global strategy_dict{}
-
-	Usage:
-		$ python runner.py [strategy_num]
 
 """
 
@@ -38,7 +37,10 @@ import matplotlib.pyplot as plt
 
 # glabal strategy assigned in main(), along with the years to train, years to backtest, and epochs to train
 global STRATEGY_CLASS, TRAINING_TIME, BACKTEST_TIME, EPOCHS, IS_NORMALIZE
-global TRAINING_STOCK, BACKTEST_STOCK # Training and backtest stock assigned in runMaster()
+global TRAINING_STOCK, BACKTEST_STOCK, SELECT_STOCKS # Training and backtest stock assigned in runMaster()
+
+TRAINING_STOCK = 'SPY'
+SELECT_STOCKS = ['AAPL', 'DIS', 'XOM', 'UNH', 'WMT']
 strategy_dict = {
 	1: TradingNet,
 	4: DeepNet
@@ -61,12 +63,12 @@ def initialize(context):
 	target = Manager.getTargets(context.normalized_data)
 	context.training_data = context.training_data[:-2]			# delete last data entry, because it won't be used
 	context.normalized_data = context.normalized_data[:-2] 		# delete last data entry, because it won't be used
-	#print target
-	#plt.figure("Training Data")
-	#for i in range(len(context.normalized_data[0])):
-	#	plt.plot([x[i] for x in context.normalized_data])
-	#plt.legend(['open', 'high', 'low', 'close', 'volume', 'price'], loc='upper left')
-	#plt.show()
+	print target
+	plt.figure("Training Data")
+	for i in range(len(context.normalized_data[0])):
+		plt.plot([x[i] for x in context.normalized_data])
+	plt.legend(['open', 'high', 'low', 'close', 'volume', 'price'], loc='upper left')
+	plt.show()
 
 	print "Train..."
 	#print len(context.training_data), len(context.normalized_data), len(target)
@@ -149,7 +151,8 @@ def analyze(perf_list):
 		plt.legend(['algorithm', 'BENCHMARK'], loc='upper left')
 		outputGraph = "algo_" + str(time.strftime("%Y-%m-%d_%H-%M-%S"))
 		plt.savefig("output/" + outputGraph, bbox_inches='tight')
-	#plt.show()
+		time.sleep(1)
+	plt.show()
 
 #==============================================================================================
 
@@ -207,9 +210,7 @@ def loadData(startYear, endYear, stock_list, startM=1, endM=1):
 
 def runMaster():
 	"""	Loads backtest data, and runs the backtest."""
-	global TRAINING_STOCK, BACKTEST_STOCK 
-	TRAINING_STOCK = 'SPY'
-	SELECT_STOCKS = ['AAPL', 'DIS', 'XOM', 'UNH', 'WMT']
+	global TRAINING_STOCK, BACKTEST_STOCK, SELECT_STOCKS
 	algo_obj = TradingAlgorithm(initialize=initialize, handle_data=handle_data)	
 	perf_manual = []
 	for stock in SELECT_STOCKS:
@@ -243,7 +244,7 @@ def main():
 	EPOCHS = args.epochs
 	IS_NORMALIZE = args.normalize
 	IS_OVERFIT = args.overfit
-	if not IS_OVERFIT or not IS_NORMALIZE:
+	if not IS_OVERFIT : #or not IS_NORMALIZE
 		print "ERROR: not implemented"; return
 	print "Using:", str(STRATEGY_CLASS)
 	print "Train", TRAINING_TIME, "year,", "Test", BACKTEST_TIME, "year."
