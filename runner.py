@@ -26,14 +26,9 @@ from sklearn.cluster import KMeans
 from neuralnets.tradingnet import TradingNet
 from neuralnets.deepnet import DeepNet, testNN
 
-# handling dates
-import pytz
-from datetime import datetime
-
 # backtesting
 from zipline.api import order, record, symbol, history, add_history, get_open_orders, order_target_percent
 from zipline.algorithm import TradingAlgorithm
-from zipline.utils.factory import load_bars_from_yahoo
 
 # analysis
 import matplotlib.pyplot as plt
@@ -49,40 +44,6 @@ strategy_dict = {
 	4: DeepNet
 }
 
-stocks_DJIA = ([
-				'MMM', 
-				'AXP', 
-				'AAPL',
-				'BA', 
-				'CAT', 
-				'CVX', 
-				#'CSCS', 
-				'KO', 
-				'DIS', 
-				'DD', 
-				'XOM',
-				'GE',
-				#'G',
-				'HD',
-				'IBM',
-				'INTC',
-				'JNJ',
-				'JPM',
-				'MCD',
-				'MRK',
-				'MSFT',
-				'MKE',
-				'PFE',
-				'PG',
-				'TRV',
-				'UTX',
-				'UNH',
-				'VZ',
-				#'V',
-				'WMT'
-])
-
-
 #==============================================================================================
 
 def initialize(context):
@@ -92,7 +53,7 @@ def initialize(context):
 	context.security = None #becomes symbol(BACKTEST_STOCK)
 	context.benchmark = symbol('SPY')
 	
-	context.training_data = loadTrainingData(TRAINING_TIME, TRAINING_STOCK)
+	context.training_data = Manager.loadTrainingData(TRAINING_TIME, TRAINING_STOCK)
 	context.training_data_length = len(context.training_data) - 2
 	context.normalized_data = Manager.normalize(context.training_data) 	# will have to redo every time step
 	
@@ -190,57 +151,8 @@ def analyze(perf_list):
 		time.sleep(1)
 	plt.show()
 
-#==============================================================================================
 
-def loadTrainingData(training_time, training_stock):
-	"""	Data stored as (open, high, low, close, volume, price)
-		Only take adjusted (open, high, low, close)
-	"""
-	#print "Load training data..."
-	answer = loadData(2013, 2013+training_time, stock_list=[training_stock])
-	answer = loadConvertDataFormat(answer)
-	# choose whether or not to normalize
-	if IS_NORMALIZE:
-		answer = ([ 							
-					([	x[0] - x[0], 	# open
-						x[1] - x[0],	# high 	- open
-						x[2] - x[0],	# low 	- open
-						x[3] - x[0],	# close - open
-						#data[context.security].volume,
-						#data[context.security].close,
-					]) for x in answer
-		])
-	else:
-		answer = ([ 							
-					([	x[0], 	# open
-						x[1],	# high 	
-						x[2],	# low 	
-						x[3],	# close 
-						#data[context.security].volume,
-						#data[context.security].close,
-					]) for x in answer
-		])
-	return answer
 
-#==============================================================================================
-
-def loadConvertDataFormat(data):
-	answer = data.transpose(2, 1, 0, copy=True).to_frame()	# pandas.Panel --> pandas.DataFrame
-	answer = answer.values.tolist() 						# pandas.DataFrame --> List of Lists
-	return answer
-
-#==============================================================================================
-
-def loadData(startYear, endYear, stock_list, startM=1, endM=1):
-	"""	Load data, stored as (open, high, low, close, volume, price).
-		Must convert pandas.Panel --> pandas.DataFrame --> List of Lists
-	"""
-	start = datetime(startYear, startM, 1, 0, 0, 0, 0, pytz.utc)
-	end = datetime(endYear, endM, 1, 0, 0, 0, 0, pytz.utc) 
-	data = load_bars_from_yahoo(stocks=stock_list, 
-								start=start,
-								end=end)
-	return data
 
 
 #==============================================================================================
@@ -252,7 +164,7 @@ def runMaster():
 	perf_manual = []
 	for stock in SELECT_STOCKS:
 		BACKTEST_STOCK = stock
-		backtestData = loadData(2013, 2013+BACKTEST_TIME, stock_list=[stock, 'SPY']) #, startM=1, endM=2, 
+		backtestData = Manager.loadData(2013, 2013+BACKTEST_TIME, stock_list=[stock, 'SPY']) #, startM=1, endM=2, 
 		print "Create algorithm..."
 		perf_manual.append(algo_obj.run(backtestData))
 	analyze(perf_manual)
@@ -278,20 +190,7 @@ def graphClusters(clusters):
 def runClusters():
 	global TRAINING_STOCK, BACKTEST_STOCK, SELECT_STOCKS
 	
-	stocks_SP500 = np.genfromtxt('constituents.csv', dtype=None, delimiter=',', skiprows=1, usecols=(0))
-	stock_data_list = []
-	#target_list = []
-	for ticker in stocks_SP500:
-		try:
-			raw_data = loadTrainingData(TRAINING_TIME, ticker)
-			normalized_data = Manager.normalize(raw_data)
-			#target_list.append(Manager.getTargets(normalized_data))
-			if len(normalized_data) == 252:
-				stock_data_list.append(normalized_data[:-2]) 	# delete last data entry, because it won't be used
-			else:
-				print "Stock Error: Contained", len(normalized_data), "instead of 252."
-		except IOError:
-			print "IOError: Could not fetch", ticker, "from Yahoo! Finance."
+	stock_data_list = Manager.getStockDataList(TRAINING_TIME)
 
 	kmeans = KMeans(n_clusters=10)
 	kmeans_data = [np.array(x).ravel() for x in stock_data_list]
@@ -310,14 +209,14 @@ def runClusters():
 	for key in clusters:
 		print str(key) + ": " + str(len(clusters[key]))
 	
-	print "Calculating for elbow method..."
-	inertia = []
-	for x in range(1, 100):
-		kmeans = KMeans(n_clusters=x)
-		kmeans.fit([np.array(x).ravel() for x in stock_data_list])
-		inertia.append(kmeans.inertia_)
-	plt.subplot(1,2,2)
-	plt.plot(inertia)
+	#print "Calculating for elbow method..."
+	#inertia = []
+	#for x in range(1, 100):
+	#	kmeans = KMeans(n_clusters=x)
+	#	kmeans.fit([np.array(x).ravel() for x in stock_data_list])
+	#	inertia.append(kmeans.inertia_)
+	#plt.subplot(1,2,2)
+	#plt.plot(inertia)
 	
 	graphClusters(clusters)
 
