@@ -70,14 +70,18 @@ class Manager:
 		return target
 
 	@staticmethod
-	def getStockDataList(training_time):
+	def get_SP500():
 		stocks_SP500 = np.genfromtxt('constituents.csv', dtype=None, delimiter=',', skiprows=1, usecols=(0))
+		return stocks_SP500
+
+	@staticmethod
+	def getStockDataList(stock_list, training_time):
 		stock_data_list = []
 		#target_list = []
-		for ticker in stocks_SP500:
+		for ticker in stock_list:
 			try:
 				raw_data = Manager.loadTrainingData(training_time, ticker)
-				normalized_data = Manager.normalize(raw_data)
+				normalized_data = raw_data #Manager.normalize(raw_data)
 				#target_list.append(Manager.getTargets(normalized_data))
 				if len(normalized_data) == 252:
 					stock_data_list.append(normalized_data[:-2]) 	# delete last data entry, because it won't be used
@@ -94,7 +98,6 @@ class Manager:
 		"""	Data stored as (open, high, low, close, volume, price)
 			Only take adjusted (open, high, low, close)
 		"""
-		#print "Load training data..."
 		answer = Manager.loadData(2013, 2013+training_time, stock_list=[training_stock])
 		answer = Manager.loadConvertDataFormat(answer)
 		# choose whether or not to normalize
@@ -145,35 +148,3 @@ class Manager:
 
 
 
-stocks_DJIA = ([
-				'MMM', 
-				'AXP', 
-				'AAPL',
-				'BA', 
-				'CAT', 
-				'CVX', 
-				#'CSCS', 
-				'KO', 
-				'DIS', 
-				'DD', 
-				'XOM',
-				'GE',
-				#'G',
-				'HD',
-				'IBM',
-				'INTC',
-				'JNJ',
-				'JPM',
-				'MCD',
-				'MRK',
-				'MSFT',
-				'MKE',
-				'PFE',
-				'PG',
-				'TRV',
-				'UTX',
-				'UNH',
-				'VZ',
-				#'V',
-				'WMT'
-])

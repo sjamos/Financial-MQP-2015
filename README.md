@@ -7,6 +7,21 @@
 * Sean Amos
 * Nicholas Bradford
 
+### Open Bugs
+
+* Add Z-score normalization.
+* Clean up Manager code.
+* Find a way to pass the ticker symbols along with the clusters, which will allow stocks to get their previous history.
+
+
+
+
+Make a dict of stock value : 'name' before clustering, and then check it later when running tests!
+
+
+
+
+
 ### Usage
 
 Running master tests: 
