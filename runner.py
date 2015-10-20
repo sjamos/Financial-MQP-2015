@@ -184,8 +184,6 @@ def analyze(perf_list):
 		time.sleep(1)
 	plt.show()
 
-
-
 #==============================================================================================
 
 def graphClusters(clusters):
@@ -232,7 +230,7 @@ def createClusters(stock_data_list, cluster_num=10):
 
 #==============================================================================================
 
-def runClusters(strategy_class, stock_data_list, epochs, cluster_num=10):
+def runClusters(strategy_class, stock_data_list, stock_tickers, epochs, cluster_num):
 	global BACKTEST_STOCK, STRATEGY_OBJECT
 	
 	clusters, kmeans = createClusters(stock_data_list)
@@ -249,26 +247,19 @@ def runClusters(strategy_class, stock_data_list, epochs, cluster_num=10):
 		print "Cluster", key, ": ", len(stock_list), "stocks."
 		STRATEGY_OBJECT = train_strategy(strategy_class, stock_list, epochs)
 		perf_manual = []
-		for stock in stock_list:
-			PRE_BACKTEST_DATA = stock[:-2]
+		for stock_data in stock_list:
+			#find name of the stock
+			for ticker, data in stock_tickers:
+				if data == stock_data:
+					stock = ticker
+					break
+			PRE_BACKTEST_DATA = Manager.getStockDataList([stock], 1)[0][0]
+			print PRE_BACKTEST_DATA
 			algo_obj = TradingAlgorithm(initialize=initialize, handle_data=handle_data)	
 			backtest_data = Manager.loadData(2013, 2013+BACKTEST_TIME, stock_list=[stock, 'SPY']) #, startM=1, endM=2, 
 			perf_manual.append(algo_obj.run(backtestData))
 		analyze(perf_manual)
 
-#==============================================================================================
-
-def runMaster():
-	"""	Loads backtest data, and runs the backtest."""
-	global TRAINING_STOCK, BACKTEST_STOCK, SELECT_STOCKS
-	algo_obj = TradingAlgorithm(initialize=initialize, handle_data=handle_data)	
-	perf_manual = []
-	for stock in SELECT_STOCKS:
-		BACKTEST_STOCK = stock
-		backtestData = Manager.loadData(2013, 2013+BACKTEST_TIME, stock_list=[stock, 'SPY']) #, startM=1, endM=2, 
-		print "Create algorithm..."
-		perf_manual.append(algo_obj.run(backtestData))
-	analyze(perf_manual)
 
 #==============================================================================================
 
@@ -284,8 +275,8 @@ def main():
 	parser.add_argument("-n", "--strategy_num", default=1, type=int, choices=[key for key in strategy_dict])
 	parser.add_argument("-t", "--training_time", default=1, type=int, choices=[year for year in range(0,14)])
 	parser.add_argument("-b", "--backtest_time", default=1, type=int, choices=[year for year in range(0,14)])
-	parser.add_argument("-e", "--epochs", default=2000, type=int)
-	parser.add_argument("-c", "--cluster_num", default=1, type=int, choices=[n for n in range(1,25)])
+	parser.add_argument("-e", "--epochs_num", default=2000, type=int)
+	parser.add_argument("-c", "--cluster_num", default=10, type=int, choices=[n for n in range(1,25)])
 	parser.add_argument("-z", "--normalize", action='store_false', help='Turn normalization off.')
 	parser.add_argument("-o", "--overfit", action='store_false', help='Perform test with overfitting.')
 	args = parser.parse_args()
@@ -293,7 +284,8 @@ def main():
 	strategy_class = strategy_dict[args.strategy_num]
 	TRAINING_TIME = args.training_time
 	BACKTEST_TIME = args.backtest_time
-	epochs = args.epochs
+	epochs_num = args.epochs_num
+	cluster_num = args.cluster_num
 	IS_NORMALIZE = args.normalize
 	IS_OVERFIT = args.overfit
 	if not IS_OVERFIT or not IS_NORMALIZE:
@@ -302,8 +294,11 @@ def main():
 	print "Train", TRAINING_TIME, "year,", "Test", BACKTEST_TIME, "year."
 	
 	#runMaster()
-	stock_data_list = Manager.getStockDataList(stocks_DJIA, TRAINING_TIME) # stocks_DJIA or Manager.get_SP500()
-	runClusters(strategy_class, stock_data_list, epochs, 10)
+	ticker_list, stock_data_list = Manager.getStockDataList(stocks_DJIA, TRAINING_TIME) # stocks_DJIA or Manager.get_SP500()
+	#assert len(ticker_list) == len(stock_data_list)
+	stock_tickers = [(ticker_list[i], stock_data_list[i]) for i in range(len(ticker_list))]
+	#print stock_tickers[0]
+	runClusters(strategy_class, stock_data_list, stock_tickers, epochs_num, cluster_num)
 
 #==============================================================================================
 
@@ -312,4 +307,18 @@ if __name__ == "__main__":
 
 #==============================================================================================
 
+# DEPRECATED
 
+#==============================================================================================
+
+def runMaster():
+	"""	Loads backtest data, and runs the backtest."""
+	global TRAINING_STOCK, BACKTEST_STOCK, SELECT_STOCKS
+	algo_obj = TradingAlgorithm(initialize=initialize, handle_data=handle_data)	
+	perf_manual = []
+	for stock in SELECT_STOCKS:
+		BACKTEST_STOCK = stock
+		backtestData = Manager.loadData(2013, 2013+BACKTEST_TIME, stock_list=[stock, 'SPY']) #, startM=1, endM=2, 
+		print "Create algorithm..."
+		perf_manual.append(algo_obj.run(backtestData))
+	analyze(perf_manual)

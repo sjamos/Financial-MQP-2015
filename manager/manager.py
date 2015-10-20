@@ -77,19 +77,20 @@ class Manager:
 	@staticmethod
 	def getStockDataList(stock_list, training_time):
 		stock_data_list = []
-		#target_list = []
+		ticker_list = []
 		for ticker in stock_list:
 			try:
 				raw_data = Manager.loadTrainingData(training_time, ticker)
 				normalized_data = raw_data #Manager.normalize(raw_data)
 				#target_list.append(Manager.getTargets(normalized_data))
 				if len(normalized_data) == 252:
+					ticker_list.append(ticker)
 					stock_data_list.append(normalized_data[:-2]) 	# delete last data entry, because it won't be used
 				else:
 					print "Stock Error: Contained", len(normalized_data), "instead of 252."
 			except IOError:
 				print "IOError: Could not fetch", ticker, "from Yahoo! Finance."
-		return stock_data_list
+		return ticker_list, stock_data_list
 
 	#==============================================================================================
 
