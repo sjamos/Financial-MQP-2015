@@ -45,7 +45,7 @@ class DeepNet(object):
 		# keep adding more layers
 		num_units = 64 #number of units in LSTM layer
 		for i in range(num_layers):
-			network = lasagne.layers.LSTMLayer(network, num_units=num_units, mask_input=l_mask, learn_init=True, nonlinearity=lasagne.nonlinearities.tanh)
+			network = lasagne.layers.LSTMLayer(network, num_units=num_units, learn_init=True, nonlinearity=lasagne.nonlinearities.tanh)
 
 		# need to reshape to use recurrent layer output in standard feedforward
 		network = lasagne.layers.ReshapeLayer(network, (-1, num_units))
