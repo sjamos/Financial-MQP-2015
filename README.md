@@ -9,9 +9,10 @@
 
 ### Open Bugs
 
-* Add Z-score normalization.
-* Clean up Manager code.
-* Find a way to pass the ticker symbols along with the clusters, which will allow stocks to get their previous history.
+* Add more control to tradinng/backtest start_date/end_date
+* Add IS_NORMALIZE
+* Add IS_OVERFIT
+* Add large-scale comparison test for clustering vs. not clustering
 
 ### Usage
 
