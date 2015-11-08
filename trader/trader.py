@@ -1,9 +1,17 @@
+"""
+    trader.py
+
+    Contains initialize() and handle_data() for TradingAlgorithm
+
+"""
+
+from zipline.api import order, record, symbol, history, add_history, get_open_orders, order_target_percent
 
 #==============================================================================================
 
 def initialize(context):
     print "Initialize..."
-    global STRATEGY_OBJECT, BACKTEST_STOCK
+    global STRATEGY_OBJECT, PRE_TRAINING_DATA, BACKTEST_STOCK
     context.security = symbol(BACKTEST_STOCK)
     context.benchmark = symbol('SPY')
     context.strategy = STRATEGY_OBJECT
@@ -46,7 +54,6 @@ def handle_data(context, data):
     else:
         order_target_percent(context.security, 0)
         #order_target_percent(context.security, -.99)
-
     record(BENCH=data[context.security].price)
     record(SPY=data[context.benchmark].price)
 

@@ -9,10 +9,11 @@
 
 ### Open Bugs
 
-* Add more control to tradinng/backtest start_date/end_date
+* Add command-line option for tradinng/backtest start_date/end_date
 * Add IS_NORMALIZE
 * Add IS_OVERFIT
 * Add large-scale comparison test for clustering vs. not clustering
+* Add volume
 
 ### Usage
 
