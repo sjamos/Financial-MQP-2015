@@ -19,20 +19,16 @@ Demo version released 11/10/2015.
 
 Running master tests: 
 
-    runner.py   [-h] 
-                [-n {1,2,3}] 
-                [-t {0,1,2,3,4,5,6,7,8,9,10,11,12,13}]
-                [-b {0,1,2,3,4,5,6,7,8,9,10,11,12,13}] 
-                [-e EPOCHS]
-                [-z]
+  $ python runner.py 
 
-    optional arguments:
-      -h, --help            show this help message and exit
-      -n {1,2,3}, --strategy_num {1,2,3}
-      -t {0,1,2,3,4,5,6,7,8,9,10,11,12,13}, --training_time {0,1,2,3,4,5,6,7,8,9,10,11,12,13}
-      -b {0,1,2,3,4,5,6,7,8,9,10,11,12,13}, --backtest_time {0,1,2,3,4,5,6,7,8,9,10,11,12,13}
-      -e EPOCHS, --epochs EPOCHS
-      -z, --normalize       Turn normalization off.
+optional arguments:
+
+  -h, --help            show this help message and exit
+  -n {1,2,3,4}, --strategy_num {1,2,3,4}
+  -e EPOCHS_NUM, --epochs_num EPOCHS_NUM
+  -c {1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24}, --cluster_num {1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24} 
+  -g, --graph_clusters  Graph clusters.
+  -l, --graph_elbow     Graph elbow method for clustering.
 
 Verify Quantopian Zipline framework:
 
