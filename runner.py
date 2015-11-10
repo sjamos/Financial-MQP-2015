@@ -141,7 +141,7 @@ def analyze(ticker_list, perf_list):
     """ To be called after the backtest. Will produce a .png in the /output/ directory."""
     print "Analyze..."
     for i, perf in enumerate(perf_list):
-        plt.figure(i)
+        fig = plt.figure(i)
         plt.plot([x/perf.portfolio_value[1] for x in perf.portfolio_value[1:]])
         plt.plot([x/perf.BENCH[1] for x in perf.BENCH[1:]])
         plt.xlabel("Time (Days)")
@@ -150,7 +150,8 @@ def analyze(ticker_list, perf_list):
         outputGraph = str(ticker_list[i]) + "_" + str(time.strftime("%Y-%m-%d_%H-%M-%S"))
         plt.savefig("output/" + outputGraph, bbox_inches='tight')
         time.sleep(1)
-    plt.show()
+        plt.close(fig)
+    #plt.show()
 
 #==============================================================================================
 
@@ -164,6 +165,7 @@ def run_clusters(strategy_class, clustering_tickers, cluster_num, epochs_num, tr
     """
     ticker_list, raw_stock_data_list = Manager.getRawStockDataList(clustering_tickers, training_start, training_end, 252)
     normalized_stock_data_list = [Manager.preprocessData(x) for x in raw_stock_data_list]
+    print "\nClustering..."
     tickers, clusters = createClusters(ticker_list, normalized_stock_data_list, cluster_num)
     print "# of stocks:   " + str(len(normalized_stock_data_list))
     print "# of clusters: " + str(len(clusters))
@@ -182,6 +184,7 @@ def run_clusters(strategy_class, clustering_tickers, cluster_num, epochs_num, tr
     for t, cluster in itertools.izip(tickers, clusters):
         settings.STRATEGY_OBJECT = trainStrategy(strategy_class, cluster, epochs_num)
         for ticker in t:
+            perf_list = []
             print "Cluster:", t
             print "Stock:", ticker
             tmp_ticks, tmp_data = Manager.getRawStockDataList([ticker], training_start, training_end, 252)
@@ -189,10 +192,13 @@ def run_clusters(strategy_class, clustering_tickers, cluster_num, epochs_num, tr
             settings.PRE_BACKTEST_DATA = tmp_data[0]
             print "Create Algorithm..."
             algo_obj = TradingAlgorithm(initialize=initialize, handle_data=handle_data)
-            backtest_data = load_bars_from_yahoo(stocks=[ticker, 'SPY'], start=backtest_start, end=backtest_end)
-            perf = algo_obj.run(backtest_data)
-            analyze([ticker], [perf])
-        print "Only testing one stock for now!"
+            try:
+                backtest_data = load_bars_from_yahoo(stocks=[ticker, 'SPY'], start=backtest_start, end=backtest_end)
+                perf_list.append(algo_obj.run(backtest_data))
+            except IOError:
+                print "Stock Error: could not load", ticker, "from Yahoo."  
+            analyze([ticker], perf_list)
+        print "Only testing one cluster for now - Done!"
         return
 
 
@@ -222,7 +228,7 @@ def main():
     training_start = datetime(2013, 1, 1, 0, 0, 0, 0, pytz.utc)
     training_end = datetime(2014, 1, 1, 0, 0, 0, 0, pytz.utc)
     backtest_start = datetime(2014, 1, 1, 0, 0, 0, 0, pytz.utc)
-    backtest_end = datetime(2015, 1, 1, 0, 0, 0, 0, pytz.utc)
+    backtest_end = datetime(2014, 3, 1, 0, 0, 0, 0, pytz.utc)
     #IS_NORMALIZE = args.is_normalize
     #IS_OVERFIT = args.is_overfit
     print "Using:", str(strategy_dict[args.strategy_num])
@@ -238,7 +244,7 @@ def main():
                     training_end=training_end, 
                     backtest_start=backtest_start,
                     backtest_end=backtest_end,
-                    is_graph=True,#args.graph,
+                    is_graph=False,#args.graph,
                     is_elbow=False#args.elbow,
     )
     sys.exit(0)
