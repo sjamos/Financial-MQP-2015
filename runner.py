@@ -186,7 +186,6 @@ def run_clusters(strategy_class, clustering_tickers, cluster_num, epochs_num, tr
     for t, cluster in itertools.izip(tickers, clusters):
         settings.STRATEGY_OBJECT = trainStrategy(strategy_class, cluster, epochs_num)
         for ticker in t:
-            perf_list = []
             print "Cluster:", t
             print "Stock:", ticker
             tmp_ticks, tmp_data = Manager.getRawStockDataList([ticker], training_start, training_end, 252)
@@ -196,10 +195,13 @@ def run_clusters(strategy_class, clustering_tickers, cluster_num, epochs_num, tr
             algo_obj = TradingAlgorithm(initialize=initialize, handle_data=handle_data)
             try:
                 backtest_data = load_bars_from_yahoo(stocks=[ticker, 'SPY'], start=backtest_start, end=backtest_end)
-                perf_list.append(algo_obj.run(backtest_data))
-            except IOError:
+                try:
+                    perf = algo_obj.run(backtest_data)
+                    analyze([ticker], [perf])
+                except ValueError, e:
+                    print str(e)
+            except IOError, e:
                 print "Stock Error: could not load", ticker, "from Yahoo."  
-            analyze([ticker], perf_list)
         print "Only testing one cluster for now - Done!"
         return
 
