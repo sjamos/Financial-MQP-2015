@@ -22,7 +22,7 @@ import numpy as np
 import pytz
 from datetime import datetime
 
-# clustering
+# clustering and helpers
 from manager.manager import Manager
 from sklearn.cluster import KMeans
 
@@ -37,7 +37,6 @@ from zipline.algorithm import TradingAlgorithm
 from zipline.utils.factory import load_bars_from_yahoo
 from trader import settings
 from trader.trader import initialize, handle_data
-
 
 # analysis
 import matplotlib.pyplot as plt
@@ -227,8 +226,8 @@ def main():
     parser.add_argument("-c", "--cluster_num", default=20, type=int, choices=[n for n in range(1, 25)])
     #parser.add_argument("-z", "--is_normalize", action='store_false', help='Turn normalization off.')
     #parser.add_argument("-o", "--is_overfit", action='store_false', help='Perform test over training data.')
-    parser.add_argument("-g", "--graph", action='store_true', help='Graph clusters.')
-    parser.add_argument("-l", "--elbow", action='store_true', help='Graph elbow method for clustering.')
+    parser.add_argument("-g", "--graph_clusters", action='store_true', help='Graph clusters.')
+    parser.add_argument("-l", "--graph_elbow", action='store_true', help='Graph elbow method for clustering.')
     args = parser.parse_args()
 
     training_start = datetime(2013, 1, 1, 0, 0, 0, 0, pytz.utc)
@@ -250,8 +249,8 @@ def main():
                     training_end=training_end, 
                     backtest_start=backtest_start,
                     backtest_end=backtest_end,
-                    is_graph=False,#args.graph,
-                    is_elbow=False#args.elbow,
+                    is_graph=args.graph_clusters,
+                    is_elbow=args.graph_elbow,
     )
     sys.exit(0)
 
