@@ -233,7 +233,7 @@ def main():
     training_start = datetime(2013, 1, 1, 0, 0, 0, 0, pytz.utc)
     training_end = datetime(2014, 1, 1, 0, 0, 0, 0, pytz.utc)
     backtest_start = datetime(2014, 1, 1, 0, 0, 0, 0, pytz.utc)
-    backtest_end = datetime(2014, 3, 1, 0, 0, 0, 0, pytz.utc)
+    backtest_end = datetime(2015, 1, 1, 0, 0, 0, 0, pytz.utc)
     #IS_NORMALIZE = args.is_normalize
     #IS_OVERFIT = args.is_overfit
     print "Using:", str(strategy_dict[args.strategy_num])
