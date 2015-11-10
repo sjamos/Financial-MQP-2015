@@ -27,6 +27,8 @@ from manager.manager import Manager
 from sklearn.cluster import KMeans
 
 # neural nets
+from strategies.naive_bayes import NaiveBayes
+from strategies.svm import SVM
 from neuralnets.tradingnet import TradingNet
 from neuralnets.deepnet import DeepNet, testNN
 
@@ -210,6 +212,8 @@ def main():
     """ 
     strategy_dict = {
         1: TradingNet,
+        2: SVM,
+        3: NaiveBayes,
         4: DeepNet
     }
     np.random.seed(13)
